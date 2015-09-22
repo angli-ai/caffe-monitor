@@ -107,6 +107,45 @@ function getFigData(data, datatype) {
 	};
 }
 
+var current_files = null;
+var interval = 60000; // 1 minute.
+var timer = setInterval(function() {updateFigures()}, interval);
+
+function updateFigures() {
+	if (!current_files) {
+		return;
+	}
+	var files = current_files;
+	var output = document.getElementById("result");
+
+	for (var i = 0; i < files.length; i++) {
+		var file = files[i];
+		console.log(file);
+
+
+		var picReader = new FileReader();
+
+		picReader.onload = function(event) {
+
+			var textFile = event.target;
+			var out = parseCaffeLog(textFile.result);
+
+		//	var div = document.createElement("div");
+			var fig = getFigData(out, "loss");
+			Plotly.newPlot(output, fig.data, fig.layout);
+
+			//div.innerText = out;
+
+			//output.insertBefore(div, null);
+			var newDate = new Date();
+			document.getElementById("console").innerHTML = newDate.toLocaleString();
+
+		};
+
+		//Read the text file
+		picReader.readAsText(file);
+	}
+}
 
 window.onload = function() {
 
@@ -115,36 +154,8 @@ window.onload = function() {
         var filesInput = document.getElementById("files");
 
         filesInput.addEventListener("change", function(event) {
-
-            var files = event.target.files; //FileList object
-            var output = document.getElementById("result");
-
-            for (var i = 0; i < files.length; i++) {
-                var file = files[i];
-				console.log(file);
-
-
-                var picReader = new FileReader();
-
-                picReader.onload = function(event) {
-
-                    var textFile = event.target;
-					var out = parseCaffeLog(textFile.result);
-
-                    var div = document.createElement("div");
-					var fig = getFigData(out, "loss");
-					Plotly.newPlot(div, fig.data, fig.layout);
-
-                    //div.innerText = out;
-
-                    output.insertBefore(div, null);
-
-                };
-
-                //Read the text file
-                picReader.readAsText(file);
-            }
-
+            current_files = event.target.files; //FileList object
+			updateFigures();
         });
     }
     else {
