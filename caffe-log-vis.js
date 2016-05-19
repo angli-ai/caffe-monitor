@@ -109,14 +109,27 @@ function getFigData(data, datatype) {
 
 var current_files = null;
 var interval = 60000; // 1 minute.
-var timer = setInterval(function() {updateFigures()}, interval);
+
+function updateWithLog(content) {
+			var out = parseCaffeLog(content);
+
+		//	var div = document.createElement("div");
+			var fig = getFigData(out, "loss");
+	        var output = document.getElementById("result");
+			Plotly.newPlot(output, fig.data, fig.layout);
+
+			//div.innerText = out;
+
+			//output.insertBefore(div, null);
+			var newDate = new Date();
+			document.getElementById("console").innerHTML = newDate.toLocaleString();
+}
 
 function updateFigures() {
 	if (!current_files) {
 		return;
 	}
 	var files = current_files;
-	var output = document.getElementById("result");
 
 	for (var i = 0; i < files.length; i++) {
 		var file = files[i];
@@ -128,17 +141,7 @@ function updateFigures() {
 		picReader.onload = function(event) {
 
 			var textFile = event.target;
-			var out = parseCaffeLog(textFile.result);
-
-		//	var div = document.createElement("div");
-			var fig = getFigData(out, "loss");
-			Plotly.newPlot(output, fig.data, fig.layout);
-
-			//div.innerText = out;
-
-			//output.insertBefore(div, null);
-			var newDate = new Date();
-			document.getElementById("console").innerHTML = newDate.toLocaleString();
+            updateWithLog(textFile.result);
 
 		};
 
@@ -147,18 +150,40 @@ function updateFigures() {
 	}
 }
 
+function doRemoteLog(url) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() { 
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+            text = xmlHttp.responseText;
+            updateWithLog(text);
+        }
+    }
+    xmlHttp.open("GET", url, true); // true for asynchronous 
+    xmlHttp.send(null);
+}
+
 window.onload = function() {
 
-    //Check File API support
-    if (window.File && window.FileList && window.FileReader) {
-        var filesInput = document.getElementById("files");
+    console.log('QueryString', QueryString);
 
-        filesInput.addEventListener("change", function(event) {
-            current_files = event.target.files; //FileList object
-			updateFigures();
-        });
-    }
-    else {
-        console.log("Your browser does not support File API");
+    if ('file' in QueryString) {
+        var filename = QueryString['file'];
+        console.log('file = ', filename);
+        doRemoteLog(filename);
+        var timer = setInterval(function() {doRemoteLog(filename)}, interval);
+    } else {
+        //Check File API support
+        if (window.File && window.FileList && window.FileReader) {
+            var filesInput = document.getElementById("files");
+
+            filesInput.addEventListener("change", function(event) {
+                current_files = event.target.files; //FileList object
+                updateFigures();
+            });
+        }
+        else {
+            console.log("Your browser does not support File API");
+        }
+        var timer = setInterval(function() { updateFigures() }, interval);
     }
 }
